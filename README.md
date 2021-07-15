@@ -1,2 +1,3 @@
-# reports-dashboard
-Go port of the hoodaw https://github.com/ministryofjustice/cloud-platform-how-out-of-date-are-we/tree/main/dashboard-reporter
+# Reports Dashboard
+
+This repository will contain the port of the how out of date are we dashboard in Go.

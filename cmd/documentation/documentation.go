@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -17,6 +20,16 @@ var (
 func main() {
 	flag.Parse()
 
+	m := collect()
+
+	jsonString, err := json.Marshal(m)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println(jsonString)
+}
+
+func collect() map[*url.URL]string {
 	// spider url looking for links to other pages
 	// return a hash of pages: { pageUrl : needsReview? }
 	c := colly.NewCollector(
@@ -50,4 +63,6 @@ func main() {
 	c.Visit("https://" + *runBook)
 
 	c.Wait()
+
+	return expired
 }

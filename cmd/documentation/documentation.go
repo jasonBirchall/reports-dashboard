@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/url"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -29,7 +28,7 @@ func main() {
 	fmt.Println(jsonString)
 }
 
-func collect() map[*url.URL]string {
+func collect() map[string]string {
 	// spider url looking for links to other pages
 	// return a hash of pages: { pageUrl : needsReview? }
 	c := colly.NewCollector(
@@ -50,10 +49,10 @@ func collect() map[*url.URL]string {
 	})
 
 	// Look for div value "data-last-reviewed-on" which contains an int value
-	expired := make(map[*url.URL]string)
+	expired := make(map[string]string)
 	c.OnHTML("div[data-last-reviewed-on]", func(e *colly.HTMLElement) {
 		lastReviewed, _ := e.DOM.Attr("data-last-reviewed-on")
-		page := e.Request.URL
+		page := e.Request.URL.String()
 		if lastReviewed < currentTime.Format("2006-01-02") {
 			expired[page] = lastReviewed
 		}

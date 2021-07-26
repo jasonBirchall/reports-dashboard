@@ -3,17 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/google/go-github/v35/github"
+	"golang.org/x/oauth2"
 )
 
 func main() {
-	client := *github.NewClient(nil)
-	repoBlob := "cloud-platform"
-	org := "ministryofjustice"
+	const (
+		repoBlob = "cloud-platform"
+		org      = "ministryofjustice"
+	)
+	// GitHub Client creation
+	token := os.Getenv("GITHUB_OAUTH_TOKEN")
+	if os.Getenv("GITHUB_OAUTH_TOKEN") == "" {
+		log.Println("you must have the GITHUB_OAUTH_TOKEN env var")
+	}
 
 	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+
 	opt := &github.RepositoryListByOrgOptions{
 		Sort:        "full_name",
 		Type:        "public",
@@ -41,7 +58,7 @@ func main() {
 		}
 	}
 
-	for _, repo := range list {
-		fmt.Println(*repo.FullName)
+	for _, l := range list {
+		fmt.Println(*l.Name)
 	}
 }

@@ -3,62 +3,44 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 
-	"github.com/google/go-github/v35/github"
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
 func main() {
-	const (
-		repoBlob = "cloud-platform"
-		org      = "ministryofjustice"
+	str, _ := fetchRepoDescription("ministryofjustice", "cloud-platform-environments")
+	fmt.Println(str)
+}
+
+// fetchRepoDescription fetches description of repo with owner and name.
+func fetchRepoDescription(owner, name string) (string, error) {
+	var q struct {
+		Repository struct {
+			Name  string
+			Url   string
+			Owner struct {
+				Login string
+			}
+			DefaultBranchRef struct {
+				Name string
+			}
+			BranchProtectionRules struct{} `graphql:"branchProtectionRules(first: 50)"`
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+
+	variables := map[string]interface{}{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(name),
+	}
+
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OAUTH_TOKEN")},
 	)
-	// GitHub Client creation
-	token := os.Getenv("GITHUB_OAUTH_TOKEN")
-	if os.Getenv("GITHUB_OAUTH_TOKEN") == "" {
-		log.Println("you must have the GITHUB_OAUTH_TOKEN env var")
-	}
+	httpClient := oauth2.NewClient(context.Background(), src)
 
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-
-	tc := oauth2.NewClient(ctx, ts)
-
-	client := github.NewClient(tc)
-
-	opt := &github.RepositoryListByOrgOptions{
-		Sort:        "full_name",
-		Type:        "public",
-		ListOptions: github.ListOptions{PerPage: 10},
-	}
-	var allRepos []*github.Repository
-
-	for {
-		repos, resp, err := client.Repositories.ListByOrg(ctx, org, opt)
-		if err != nil {
-			fmt.Println("Fail:", err)
-		}
-
-		allRepos = append(allRepos, repos...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-
-	var list []*github.Repository
-	for _, repo := range allRepos {
-		if strings.Contains(*repo.FullName, repoBlob) {
-			list = append(list, repo)
-		}
-	}
-
-	for _, l := range list {
-		fmt.Println(*l.Name)
-	}
+	client := githubv4.NewClient(httpClient)
+	err := client.Query(context.Background(), &q, variables)
+	return q.Repository.Owner.Login, err
 }
